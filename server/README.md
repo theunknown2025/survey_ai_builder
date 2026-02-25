@@ -1,6 +1,6 @@
 # Survey API Server
 
-Simple Express backend server that connects directly to MongoDB for the Survey application.
+Simple Express backend for the Survey application. Uses in-memory storage for survey history (data lost on restart).
 
 ## Setup
 
@@ -24,10 +24,8 @@ The server will run on `http://localhost:3001` by default.
 
 ## Environment Variables
 
-You can set the following environment variables:
-
 - `PORT` - Server port (default: 3001)
-- MongoDB connection string is hardcoded in `index.js` (you can move it to env if needed)
+- `CORS_ORIGINS` - Comma-separated allowed origins (e.g. `http://yourserver.com`)
 
 ## API Endpoints
 

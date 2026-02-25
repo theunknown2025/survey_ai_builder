@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SavedSurvey, getAllSurveys, deleteSurvey } from '../../lib/mongodb';
+import { SavedSurvey, getAllSurveys, deleteSurvey } from '../../lib/surveyApi';
 import { 
   Eye, 
   Network, 

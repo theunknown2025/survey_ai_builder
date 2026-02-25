@@ -1,6 +1,6 @@
 /**
- * MongoDB API client
- * Connects to the Express backend that uses MongoDB directly.
+ * Survey API client
+ * Connects to the Express backend for survey history (in-memory storage).
  * The backend server runs on port 3001 (or PORT env variable).
  */
 
@@ -16,9 +16,6 @@ export interface SavedSurvey {
   updatedAt: Date | string;
 }
 
-/**
- * Save survey to MongoDB via backend API
- */
 export async function saveSurvey(
   title: string,
   surveyJson: string,

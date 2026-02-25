@@ -4,7 +4,7 @@ import { Star, ChevronRight, Info, AlertCircle, Sparkles, Loader2, Save, CheckCi
 import NfieldSurveyTest from './NfieldSurveyTest';
 import { generateNipoFile } from '../utils/generateNipoFile';
 import { validateOdinFile, fixOdinErrors } from '../utils/errorHandler';
-import { saveSurvey } from '../lib/mongodb';
+import { saveSurvey } from '../lib/surveyApi';
 import { LANGUAGES } from './LanguageModal';
 
 interface Step3PreviewProps {

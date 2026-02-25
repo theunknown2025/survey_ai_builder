@@ -1,4 +1,4 @@
-import { SavedSurvey } from '../../../lib/mongodb';
+import { SavedSurvey } from '../../../lib/surveyApi';
 import { Survey } from '../../../types/survey';
 
 /**
