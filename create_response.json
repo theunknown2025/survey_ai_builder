@@ -1,0 +1,14 @@
+{
+  "ClientName": null,
+  "SurveyType": "Basic",
+  "Description": null,
+  "QuestionnaireMD5": null,
+  "InterviewerInstruction": null,
+  "SurveyState": 0,
+  "SurveyGroupId": 3,
+  "IsBlueprint": false,
+  "EnableRespondentsGateway": false,
+  "LastStartDate": null,
+  "SurveyId": "287f7825-447f-4069-89f6-59aff619e175",
+  "SurveyName": "TestV1Script 1770234933646"
+}
