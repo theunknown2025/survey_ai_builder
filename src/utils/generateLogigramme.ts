@@ -1,4 +1,5 @@
 import { Logigramme } from '../types/survey';
+import { validateGeneratedLogigramme } from '../validation/logigrammeValidation';
 
 // Import prompts from the Edge Function
 const STEP1_SECTIONS_PROMPT = {
@@ -468,6 +469,29 @@ export async function generateLogigramme(context: string, apiKey: string): Promi
 
     // Recalculate section positions and dimensions
     logigramme.sections = recalculateSectionBounds(logigramme.sections, logigramme.nodes);
+  }
+
+  // Final quality gate: enforce schema + starter validation rules before returning.
+  const validationResult = validateGeneratedLogigramme(logigramme as Logigramme, context);
+  const strictValidation = import.meta.env.VITE_STRICT_SURVEY_VALIDATION === 'true';
+  if (!validationResult.valid) {
+    const blockingFindings = validationResult.findings
+      .filter((finding) => finding.severity === 'error')
+      .slice(0, 6)
+      .map((finding) =>
+        `${finding.rule_id}${finding.question_id ? ` (${finding.question_id})` : ''}: ${finding.message}`
+      );
+
+    if (strictValidation) {
+      throw new Error(
+        `Generated survey did not pass quality validation. ${blockingFindings.join(' | ')}`
+      );
+    }
+
+    // Fail-open mode: keep generating surveys while surfacing validation issues for debugging.
+    console.warn(
+      `Survey validation issues detected (non-blocking). ${blockingFindings.join(' | ')}`
+    );
   }
 
   return logigramme as Logigramme;

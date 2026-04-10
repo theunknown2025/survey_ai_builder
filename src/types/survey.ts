@@ -18,6 +18,8 @@ export interface Node {
   label: string;
   questionType?: QuestionType;
   options?: string[];
+  /** Per-option image URLs, parallel array to `options`. Undefined entry = no image for that option. */
+  optionImages?: (string | undefined)[];
   imageUrl?: string;
   imageAlt?: string;
   sectionId?: string; // Link question to a section

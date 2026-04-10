@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Edit2, Trash2, Plus, Move, Sparkles, Loader2, Info, LayoutGrid, Eye, UploadCloud } from 'lucide-react';
+import { Edit2, Trash2, Plus, Move, Sparkles, Loader2, Info, LayoutGrid, Eye, UploadCloud, Image as ImageIcon, ImagePlus, X } from 'lucide-react';
 import { Logigramme, Node, Edge, QuestionType, Section } from '../types/survey';
 import { generateFollowupQuestions } from '../utils/generateFollowupQuestions';
 import { arrangeLogigramme } from '../utils/arrangeLogigramme';
@@ -39,6 +39,12 @@ export default function Step2Logigramme({ logigramme, setLogigramme, onNext, onB
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
+  // Per-option image upload state
+  const optionImageFileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingOptionImageIndex, setPendingOptionImageIndex] = useState<number | null>(null);
+  const [uploadingOptionIndex, setUploadingOptionIndex] = useState<number | null>(null);
+  const [optionImageUploadError, setOptionImageUploadError] = useState<string | null>(null);
+
   const handleEditNode = (node: Node) => {
     if (node.type === 'question') {
       setEditingNode({ ...node });
@@ -72,7 +78,10 @@ export default function Step2Logigramme({ logigramme, setLogigramme, onNext, onB
   const handleAddOption = () => {
     if (!editingNode) return;
     const newOptions = [...(editingNode.options || []), ''];
-    setEditingNode({ ...editingNode, options: newOptions });
+    const newOptionImages = editingNode.optionImages
+      ? [...editingNode.optionImages, undefined]
+      : undefined;
+    setEditingNode({ ...editingNode, options: newOptions, optionImages: newOptionImages });
   };
 
   const handleUpdateOption = (index: number, value: string) => {
@@ -85,7 +94,53 @@ export default function Step2Logigramme({ logigramme, setLogigramme, onNext, onB
   const handleDeleteOption = (index: number) => {
     if (!editingNode) return;
     const newOptions = editingNode.options?.filter((_, i) => i !== index) || [];
-    setEditingNode({ ...editingNode, options: newOptions });
+    const newOptionImages = editingNode.optionImages?.filter((_, i) => i !== index);
+    setEditingNode({ ...editingNode, options: newOptions, optionImages: newOptionImages });
+  };
+
+  const handleOptionImageUploadClick = (index: number) => {
+    setPendingOptionImageIndex(index);
+    setOptionImageUploadError(null);
+    if (optionImageFileInputRef.current) {
+      optionImageFileInputRef.current.value = '';
+      optionImageFileInputRef.current.click();
+    }
+  };
+
+  const handleOptionImageFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !editingNode || pendingOptionImageIndex === null) return;
+
+    const idx = pendingOptionImageIndex;
+    setUploadingOptionIndex(idx);
+    setOptionImageUploadError(null);
+
+    try {
+      const url = await uploadSurveyImage(file);
+      setEditingNode((prev) => {
+        if (!prev) return prev;
+        const newOptionImages = [
+          ...(prev.optionImages || (prev.options?.map(() => undefined) ?? [])),
+        ] as (string | undefined)[];
+        newOptionImages[idx] = url;
+        return { ...prev, optionImages: newOptionImages };
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to upload image.';
+      setOptionImageUploadError(message);
+    } finally {
+      setUploadingOptionIndex(null);
+      setPendingOptionImageIndex(null);
+    }
+  };
+
+  const handleRemoveOptionImage = (index: number) => {
+    if (!editingNode) return;
+    const newOptionImages = [
+      ...(editingNode.optionImages || (editingNode.options?.map(() => undefined) ?? [])),
+    ] as (string | undefined)[];
+    newOptionImages[index] = undefined;
+    setEditingNode({ ...editingNode, optionImages: newOptionImages });
   };
 
   const handleImageUploadClick = () => {
@@ -715,7 +770,10 @@ export default function Step2Logigramme({ logigramme, setLogigramme, onNext, onB
                             <div className="text-xs text-gray-500 font-semibold">Options:</div>
                             <div className="space-y-0.5">
                               {node.options.slice(0, 4).map((option, idx) => (
-                                <div key={idx} className="text-xs text-gray-600 pl-2 border-l-2 border-gray-300 break-words">
+                                <div key={idx} className="text-xs text-gray-600 pl-2 border-l-2 border-gray-300 break-words flex items-center gap-1">
+                                  {node.optionImages?.[idx] && (
+                                    <ImageIcon className="w-3 h-3 text-indigo-400 flex-shrink-0" title="Has image" />
+                                  )}
                                   {option}
                                 </div>
                               ))}
@@ -863,32 +921,85 @@ export default function Step2Logigramme({ logigramme, setLogigramme, onNext, onB
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Options
                   </label>
-                  <div className="space-y-2">
-                    {editingNode.options?.map((option, index) => (
-                      <div key={index} className="flex gap-2">
-                        <input
-                          type="text"
-                          value={option}
-                          onChange={(e) => handleUpdateOption(index, e.target.value)}
-                          placeholder={`Option ${index + 1}`}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <button
-                          onClick={() => handleDeleteOption(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    {editingNode.options?.map((option, index) => {
+                      const optImgUrl = editingNode.optionImages?.[index];
+                      return (
+                        <div key={index} className="rounded-lg border border-gray-200 p-2 space-y-2 bg-gray-50">
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(e) => handleUpdateOption(index, e.target.value)}
+                              placeholder={`Option ${index + 1}`}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleOptionImageUploadClick(index)}
+                              disabled={uploadingOptionIndex === index}
+                              title="Attach image to this answer"
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            >
+                              {uploadingOptionIndex === index
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <ImagePlus className="w-4 h-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOption(index)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0"
+                              title="Remove option"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {optImgUrl && (
+                            <div className="flex items-start gap-2 pl-1">
+                              <div className="relative group">
+                                <img
+                                  src={optImgUrl}
+                                  alt={option || `Option ${index + 1}`}
+                                  className="h-16 w-auto max-w-[160px] rounded-md border border-gray-200 object-contain bg-white"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOptionImage(index)}
+                                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Remove image"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <span className="text-xs text-gray-500 mt-1">Image attached</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {optionImageUploadError && (
+                      <p className="text-xs text-red-600">{optionImageUploadError}</p>
+                    )}
+
                     <button
                       onClick={handleAddOption}
-                      className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg font-medium"
+                      className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg font-medium text-sm"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Plus className="w-4 h-4" />
                       Add Option
                     </button>
                   </div>
+
+                  {/* Hidden file input for option images */}
+                  <input
+                    ref={optionImageFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleOptionImageFileChange}
+                  />
                 </div>
               )}
 

@@ -110,7 +110,7 @@ nano server/.env.local
 Add:
 
 ```env
-CORS_ORIGINS=http://YOUR_SERVER_IP,http://localhost
+CORS_ORIGINS=http://20.90.145.42,http://localhost
 PORT=3001
 NODE_ENV=production
 ```
@@ -179,7 +179,7 @@ Add (replace `YOUR_SERVER_IP`):
 ```nginx
 server {
     listen 80;
-    server_name YOUR_SERVER_IP;
+    server_name 20.90.145.42;
 
     # Frontend static files
     root /home/ubuntu/survey-app/dist;

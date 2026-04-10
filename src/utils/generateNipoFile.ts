@@ -223,7 +223,12 @@ ${node.label}${imageHtml}
         node.options.forEach((option, optIndex) => {
           const optionCode = optIndex + 1;
           const optionText = option.replace(/"/g, '');
-          questionODIN += `${optionCode}: ${optionText}
+          // Images are language-neutral; carry them through in language sections too
+          const optImageUrl = node.optionImages?.[optIndex];
+          const optImageHtml = optImageUrl
+            ? `<img src="${optImageUrl}" alt="${optionText}" /> `
+            : '';
+          questionODIN += `${optionCode}: ${optImageHtml}${optionText}
 
 `;
         });
@@ -243,6 +248,12 @@ ${node.label}${imageHtml}
         node.options.forEach((option, optIndex) => {
           const optionCode = optIndex + 1;
           const optionText = option.replace(/"/g, '');
+          // Embed image HTML inline before the answer text if an option image exists
+          const optImageUrl = node.optionImages?.[optIndex];
+          const optImageHtml = optImageUrl
+            ? `<img src="${optImageUrl}" alt="${optionText}" /> `
+            : '';
+          const optionDisplay = `${optImageHtml}${optionText}`;
           
           // Add *SWILANG directive for language selection question
           if (isLanguageQuestion && logigramme.languages && logigramme.languages.length > 1) {
@@ -250,16 +261,16 @@ ${node.label}${imageHtml}
             const langInfo = LANGUAGES.find(l => l.nativeName === option);
             if (langInfo) {
               const odinLangCode = getOdinLanguageCode(langInfo.code);
-              questionODIN += `${optionCode}: ${optionText} *SWILANG "${odinLangCode}" *PROPERTIES "DIMELE=_${optionCode}"
+              questionODIN += `${optionCode}: ${optionDisplay} *SWILANG "${odinLangCode}" *PROPERTIES "DIMELE=_${optionCode}"
 
 `;
             } else {
-              questionODIN += `${optionCode}: ${optionText} *PROPERTIES "DIMELE=_${optionCode}"
+              questionODIN += `${optionCode}: ${optionDisplay} *PROPERTIES "DIMELE=_${optionCode}"
 
 `;
             }
           } else {
-            questionODIN += `${optionCode}: ${optionText} *PROPERTIES "DIMELE=_${optionCode}"
+            questionODIN += `${optionCode}: ${optionDisplay} *PROPERTIES "DIMELE=_${optionCode}"
 
 `;
           }
