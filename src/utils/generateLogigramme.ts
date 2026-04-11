@@ -1,5 +1,6 @@
-import { Logigramme } from '../types/survey';
+import { Logigramme, Node } from '../types/survey';
 import { validateGeneratedLogigramme } from '../validation/logigrammeValidation';
+import { stripLanguagePickerQuestionsFromLogigramme } from './logigrammeLanguageFilter';
 
 // Import prompts from the Edge Function
 const STEP1_SECTIONS_PROMPT = {
@@ -42,10 +43,8 @@ Return ONLY JSON (no markdown):
 }
 
 CRITICAL REQUIREMENTS:
-- The FIRST question (q1) MUST ALWAYS be a language selection question asking the user to choose their preferred language for filling out the survey
-- If the context mentions languages, use those language names in the first question options
-- The first question should be a multiple-choice question with language options
-- After language selection, proceed with the rest of the survey questions
+- Do NOT add a question asking respondents to choose their preferred language for the survey, filling language, or UI language. Survey/CAWI language is handled outside this questionnaire.
+- Start with substantive survey content (screening, topic, demographics as appropriate to the brief)—never a language-picker as the first or any question.
 
 CRITICAL BRANCHING:
 - Different answers MUST lead to DIFFERENT sections or questions
@@ -59,15 +58,8 @@ Rules:
 - Use appropriate question types
 - Include branchingStrategy for multiple-choice/yes-no questions`,
 
-  user: (sections: any[], context: string) => {
-    // Check if context mentions languages
-    const hasLanguageInfo = context.includes('[Languages:') || context.toLowerCase().includes('language');
-    const languageNote = hasLanguageInfo 
-      ? '\n\nIMPORTANT: The context includes language information. The first question MUST ask the user to select their preferred language for the survey.'
-      : '';
-    
-    return `Generate questions with branching for these sections:\n\nSections: ${JSON.stringify(sections)}\n\nContext: ${context.substring(0, 400)}${languageNote}`;
-  }
+  user: (sections: any[], context: string) =>
+    `Generate questions with branching for these sections:\n\nSections: ${JSON.stringify(sections)}\n\nContext: ${context.substring(0, 400)}\n\nIf the context mentions languages or translations, treat that as metadata for wording only—do not add a respondent-facing language-selection question.`
 };
 
 const STEP3_SIZING_PROMPT = {
@@ -118,6 +110,7 @@ CRITICAL BRANCHING:
 
 Rules:
 - Use provided sections, questions, and sizes exactly
+- Do not introduce a language-selection or "preferred language for this survey" question unless it already appears verbatim in the provided questions list (it should not).
 - Position: branch horizontally, y increments by 100-150 per level
 - Edges: labels must match answer options
 - Create multiple conditional paths`,
@@ -440,6 +433,8 @@ export async function generateLogigramme(context: string, apiKey: string): Promi
         return node;
       });
     }
+
+    logigramme = stripLanguagePickerQuestionsFromLogigramme(logigramme as Logigramme) as typeof logigramme;
     
     // Validate and enhance branching
     logigramme = enhanceBranching(logigramme);
@@ -452,7 +447,7 @@ export async function generateLogigramme(context: string, apiKey: string): Promi
     logigramme.sections = generateSectionsFromNodes(logigramme.nodes, logigramme.edges);
   } else {
     // Validate that all questions have sectionId
-    const questionNodes = logigramme.nodes.filter(n => n.type === 'question');
+    const questionNodes = logigramme.nodes.filter((n: Node) => n.type === 'question');
     const sectionIds = new Set(logigramme.sections.map((s: any) => s.id));
     
     questionNodes.forEach((node: any) => {

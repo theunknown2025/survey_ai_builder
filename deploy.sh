@@ -12,6 +12,33 @@ echo "🚀 Starting deployment..."
 APP_DIR="/home/ubuntu/survey-app"
 cd "$APP_DIR" || { echo "❌ Project directory not found!"; exit 1; }
 
+# 0. Validate environment file and required keys
+ENV_FILE=""
+if [ -f ".env.production" ]; then
+    ENV_FILE=".env.production"
+elif [ -f ".env" ]; then
+    ENV_FILE=".env"
+else
+    echo "❌ No .env.production or .env file found in $APP_DIR"
+    echo "   Create one before deploying."
+    exit 1
+fi
+
+echo "🔐 Using environment file: $ENV_FILE"
+if ! grep -q "^VITE_OPENAI_API_KEY=" "$ENV_FILE"; then
+    echo "❌ VITE_OPENAI_API_KEY is missing in $ENV_FILE"
+    echo "   Add your new API key, then run deploy again."
+    exit 1
+fi
+
+if ! grep -q "^VITE_SUPABASE_URL=" "$ENV_FILE"; then
+    echo "⚠️  VITE_SUPABASE_URL is missing in $ENV_FILE (continuing)"
+fi
+
+if ! grep -q "^VITE_SUPABASE_ANON_KEY=" "$ENV_FILE"; then
+    echo "⚠️  VITE_SUPABASE_ANON_KEY is missing in $ENV_FILE (continuing)"
+fi
+
 # 1. Pull latest from GitHub
 echo "📥 Pulling latest from GitHub..."
 git pull origin main

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Edit2, Trash2, Plus, Move, Sparkles, Loader2, Info, LayoutGrid, Eye, UploadCloud, Image as ImageIcon, ImagePlus, X } from 'lucide-react';
 import { Logigramme, Node, Edge, QuestionType, Section } from '../types/survey';
 import { generateFollowupQuestions } from '../utils/generateFollowupQuestions';
+import { isLanguagePreferenceQuestionNode } from '../utils/logigrammeLanguageFilter';
 import { arrangeLogigramme } from '../utils/arrangeLogigramme';
 import { uploadSurveyImage } from '../lib/imageUpload';
 
@@ -456,17 +457,29 @@ export default function Step2Logigramme({ logigramme, setLogigramme, onNext, onB
         existingNodes: logigramme.nodes,
         apiKey,
       });
+
+      const droppedLanguagePicker = data.nodes.filter((n) => isLanguagePreferenceQuestionNode(n));
+      const newQuestionNodes = data.nodes.filter((n) => !isLanguagePreferenceQuestionNode(n));
+      const droppedIds = new Set(droppedLanguagePicker.map((n) => n.id));
+      const mappedEdges = data.edges
+        .filter((e) => !droppedIds.has(e.from) && !droppedIds.has(e.to))
+        .map((edge: Edge) => ({
+          ...edge,
+          from: edge.from === 'q_original_id' ? selectedNode.id : edge.from,
+        }));
       
       // Merge new nodes and edges into existing logigramme
-      const updatedNodes = [...logigramme.nodes, ...data.nodes];
-      const updatedEdges = [...logigramme.edges, ...data.edges.map((edge: Edge) => ({
-        ...edge,
-        from: edge.from === 'q_original_id' ? selectedNode.id : edge.from,
-      }))];
+      const updatedNodes = [...logigramme.nodes, ...newQuestionNodes];
+      const updatedEdges = [...logigramme.edges, ...mappedEdges];
 
       setLogigramme({ nodes: updatedNodes, edges: updatedEdges });
       setAiPrompt('');
-      alert(`Successfully added ${data.nodes.length} follow-up question(s)!`);
+      const added = newQuestionNodes.length;
+      const msg =
+        droppedLanguagePicker.length > 0
+          ? `Added ${added} follow-up question(s). Skipped ${droppedLanguagePicker.length} language-selection question(s) the model should not generate.`
+          : `Successfully added ${added} follow-up question(s)!`;
+      alert(msg);
     } catch (error) {
       console.error('Error generating follow-up questions:', error);
       alert(error instanceof Error ? error.message : 'Failed to generate follow-up questions. Please try again.');

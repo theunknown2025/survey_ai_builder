@@ -62,6 +62,7 @@ Return a JSON structure with the following format:
 
 Important guidelines:
 - Create 2-4 relevant follow-up questions
+- Never generate a question asking the respondent to choose their preferred language, survey language, or UI language for filling out the survey (including multiple-choice lists of languages).
 - Position nodes appropriately (x: 100-500, y: increment by 150-200)
 - Use appropriate question types
 - Create edges from the original question to each follow-up

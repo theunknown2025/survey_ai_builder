@@ -140,7 +140,7 @@ export default function Step1Context({
         
         // Generate in primary language first
         const languageContext = selectedLanguages.length > 0
-          ? `${currentContext}\n\n[Generate the survey in ${LANGUAGES.find(l => l.code === primaryLanguage)?.nativeName || primaryLanguage}. The first question must ask the user to select their preferred language for filling out the survey.]`
+          ? `${currentContext}\n\n[Write all survey question wording in ${LANGUAGES.find(l => l.code === primaryLanguage)?.nativeName || primaryLanguage}. Do not add a question asking respondents to choose their preferred language for the survey—that is handled by the platform.]`
           : currentContext;
         
         updatedLogigramme = await generateLogigramme(languageContext, apiKey);
@@ -375,7 +375,7 @@ Return ONLY the enhanced text, without any additional explanations or markdown f
       
       // Generate in primary language first
       const languageContext = selectedLanguages.length > 0
-        ? `${fileContext}\n\n[Generate the survey in ${LANGUAGES.find(l => l.code === primaryLanguage)?.nativeName || primaryLanguage}. The first question must ask the user to select their preferred language for filling out the survey.]`
+        ? `${fileContext}\n\n[Write all survey question wording in ${LANGUAGES.find(l => l.code === primaryLanguage)?.nativeName || primaryLanguage}. Do not add a question asking respondents to choose their preferred language for the survey—that is handled by the platform.]`
         : fileContext;
       
       let updatedLogigramme = await generateLogigramme(languageContext, apiKey);
